@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include "symtable.h"
 
+/* Starting size for array of Bindings */
+static enum { BUCKET_COUNT = 509 };
+
 /* Each key and its value is stored in a binding, as well as a pointer 
 to the next binding.  Bindingss are linked to form a list.  */
 struct Binding {
@@ -22,7 +25,7 @@ struct SymTable {
    /* number of current buckets */
    size_t bucketSize;
    /* pointer to array of Bindings */
-   struct Binding **collection;
+   struct Binding **collection[BUCKET_COUNT];
    /* number of Bindings */
    size_t size;}; 
 
@@ -46,84 +49,6 @@ static size_t SymTable_hash(const char *pcKey, size_t uBucketCount)
    return uHash % uBucketCount;
 }
 
-/* frees the memory occupied by a pointer to an array of Binding 
-   pointers size of size, which is named collection */
-static void SymTable_freeCollection(struct Binding **collection,
-                                    size_t size) {
-   struct Binding *temp;
-   struct Binding *after;
-   size_t i;
-   assert(collection != NULL);
-   for(i = 0; i < size; i++) {
-      if(collection[i] == NULL)
-         continue;
-      else {
-        temp = collection[i];
-        after = collection[i];
-        while(after != NULL) {
-           temp = after;
-           after = temp->next;
-           free(temp->key);
-           free(temp);
-        }
-      }
-   }
-   free(collection);
-}
-
-/* Takes a Symbol Table oSymTable and grows the number 
-of buckets it has */
-static void SymTable_grow(SymTable_T oSymTable) {
-   size_t oldBucketSize;
-   size_t newBucketSize;
-   size_t hash;
-   struct Binding **newCollection;
-   struct Binding **oldCollection;
-   struct Binding *newBinding;
-   struct Binding *temp;
-   size_t i;
-   /* This section finds new bucket count */
-   oldBucketSize = oSymTable->bucketSize;
-   oldCollection = oSymTable->collection;
-   for(i = 0; bucketCounts[i] <= oldBucketSize; i++)
-      ;
-   newBucketSize = bucketCounts[i];
-   newCollection = (struct Binding**)calloc(newBucketSize,
-                                        sizeof(struct Binding*));
-   /* Adds every key in old collection to the new one */
-   if(newCollection == NULL)
-      return;
-   for(i = 0; i < oldBucketSize; i++) {
-      if(oSymTable->collection[i] == NULL)
-         continue;
-      for(temp = oSymTable->collection[i]; temp != NULL;
-              temp = temp->next) {
-         hash = SymTable_hash(temp->key, newBucketSize);
-         newBinding = (struct Binding*)malloc(sizeof(struct
-                                                         Binding));
-         if(newBinding == NULL) {
-            SymTable_freeCollection(newCollection,
-                                        newBucketSize);
-            return; }
-         newBinding->key = malloc(sizeof(char) *
-                                      (strlen(temp->key) + 1));
-         if(newBinding->key == NULL) {
-            free(newBinding);
-            SymTable_freeCollection(newCollection,
-                                        newBucketSize);
-            return; }
-         strcpy(newBinding->key, temp->key);
-         newBinding->value = temp->value;
-         newBinding->next = newCollection[hash];
-         newCollection[hash] = newBinding;
-      }
-   }
-   oSymTable->bucketSize = newBucketSize;
-   oSymTable->collection = newCollection;
-   SymTable_freeCollection(oldCollection, oldBucketSize);
-   return;
-}
-  
 SymTable_T SymTable_new(void) {
    SymTable_T oSymTable;
 
@@ -163,7 +88,6 @@ void SymTable_free(SymTable_T oSymTable) {
    free(oSymTable);
 }
    
-
 size_t SymTable_getLength(SymTable_T oSymTable) {
    assert(oSymTable != NULL);
    return oSymTable->size;
@@ -191,9 +115,6 @@ int SymTable_put(SymTable_T oSymTable,
    newBinding->next = oSymTable->collection[hash];
    oSymTable->collection[hash] = newBinding;
    oSymTable->size++;
-   if(oSymTable->size > oSymTable->bucketSize && oSymTable->bucketSize
-      < bucketCounts[sizeof(bucketCounts)/sizeof(bucketCounts[0])])
-      SymTable_grow(oSymTable);
    return 1;
 }
 

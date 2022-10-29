@@ -1,0 +1,51 @@
+/* symtable.h */
+/* Anass Mountasser */
+
+#ifndef SYM_INCLUDED
+#define SYM_INCLUDED
+#include <stddef.h>
+
+/* A SymTable_T object is a symbol table that stores a key and its
+associated value. */
+typedef struct SymTable *SymTable_T;
+
+/* Returns a new SymTable object that contains no bindings, or NULL if
+   insufficient memory is available. */
+SymTable_T SymTable_new(void);
+
+/* Frees all memory occupied by oSymTable */
+void SymTable_free(SymTable_T oSymTable);
+
+/* Returns the number of bindings in oSymTable. */
+size_t SymTable_getLength(SymTable_T oSymTable);
+
+/* If pcKey not present, then it is added along with the pvValue to
+oSymTable, and returns 1. If it is already present or there is
+no more memory, 0 is returned */
+int SymTable_put(SymTable_T oSymTable,
+     const char *pcKey, const void *pvValue);
+
+/* If pcKey is present, the value is replaced and the old pvValue is 
+   returned. Otherwise, oSymTable is unchanged, returns NULL. */
+void *SymTable_replace(SymTable_T oSymTable,
+     const char *pcKey, const void *pvValue);
+
+/* If oSymTable contains pcKey, 1 is returned, and 0 otherwise. */
+int SymTable_contains(SymTable_T oSymTable, const char *pcKey);
+
+/* If pcKey exists, returns its value from oSymTable, or NULL
+   otherwise. */
+void *SymTable_get(SymTable_T oSymTable, const char *pcKey);
+
+/* If oSymTable contains pcKey, the corresponding binding is
+   removed and its value is returned. Otherwise, returns NULL. */
+void *SymTable_remove(SymTable_T oSymTable, const char *pcKey);
+
+/* Applies function *pfApply to each binding in oSymTable, passing 
+pvExtra as an extra parameter. The applied function takes three
+arguements: pcKey, pvValue, and the extra arguement pvExtra */
+void SymTable_map(SymTable_T oSymTable,
+     void (*pfApply)(const char *pcKey, void *pvValue, void *pvExtra),
+     const void *pvExtra);
+
+#endif
